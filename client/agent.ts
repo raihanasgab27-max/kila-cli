@@ -23,23 +23,42 @@ export class Agent {
       process.stdout.write(chalk.gray(`  [thinking: ${this.model}] `));
       
       try {
-        // 1. Tanya Otak (VPS)
-        const chatRes = await fetch(`${this.serverUrl}/chat`, {
+        // 1. Kirim pesan dan dapatkan Task ID
+        const initRes = await fetch(`${this.serverUrl}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: this.model, messages: this.history }),
         });
 
+        if (!initRes.ok) throw new Error(`VPS Error: ${await initRes.text()}`);
+        const { taskId } = await initRes.json();
+
+        // 2. Polling status sampai selesai
+        let data: any = null;
+        while (true) {
+          const statusRes = await fetch(`${this.serverUrl}/status/${taskId}`);
+          if (!statusRes.ok) throw new Error(`Polling Error: ${await statusRes.text()}`);
+          
+          const statusData = await statusRes.json();
+          
+          if (statusData.status === 'completed') {
+            data = statusData.data;
+            break;
+          } else if (statusData.status === 'error') {
+            throw new Error(statusData.error);
+          }
+
+          // Tunggu 1 detik sebelum tanya lagi
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
         // Clear "Thinking" line
         process.stdout.write('\r\x1b[K');
-
-        if (!chatRes.ok) throw new Error(`VPS Error: ${await chatRes.text()}`);
         
-        const data = await chatRes.json();
         const message = data.message;
         this.history.push(message);
 
-        // 2. Jika Otak (VPS) menyuruh pakai Tool
+        // 3. Jika AI menyuruh pakai Tool
         if (message.tool_calls && message.tool_calls.length > 0) {
           for (const toolCall of message.tool_calls) {
             const toolName = toolCall.function.name;

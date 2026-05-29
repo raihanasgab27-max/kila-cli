@@ -3,8 +3,10 @@ import ollama from 'ollama';
 import { toolDefinitions } from './tool-schemas.js';
 import { search } from 'duck-duck-scrape';
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 const PORT = process.env.PORT || 3000;
+// Penyimpanan tugas (Task Queue)
+const tasks = new Map();
 // Logika eksekusi tool di sisi Server (VPS)
 const serverTools = {
     web_search: async (args) => {
@@ -23,44 +25,56 @@ const serverTools = {
 };
 app.post('/chat', async (req, res) => {
     const { model, messages } = req.body;
-    console.log(`User asking ${model}...`);
-    try {
-        let currentMessages = [...messages];
-        while (true) {
-            const response = await ollama.chat({
-                model,
-                messages: currentMessages,
-                tools: toolDefinitions,
-            });
-            const message = response.message;
-            // Jika AI ingin memanggil tool
-            if (message.tool_calls && message.tool_calls.length > 0) {
-                let hasServerTool = false;
-                for (const toolCall of message.tool_calls) {
-                    const toolName = toolCall.function.name;
-                    // Cek apakah ini tool milik SERVER (VPS)
-                    if (serverTools[toolName]) {
-                        hasServerTool = true;
-                        const result = await serverTools[toolName](toolCall.function.arguments);
-                        currentMessages.push(message); // Tambahkan permintaan tool ke history
-                        currentMessages.push({
-                            role: 'tool',
-                            content: result,
-                        });
+    const taskId = Math.random().toString(36).substring(7);
+    console.log(`[Task ${taskId}] User asking ${model}...`);
+    // Daftarkan task baru
+    tasks.set(taskId, { status: 'processing' });
+    // Jalankan proses AI di background (jangan ditunggu/await)
+    (async () => {
+        try {
+            let currentMessages = [...messages];
+            while (true) {
+                const response = await ollama.chat({
+                    model,
+                    messages: currentMessages,
+                    tools: toolDefinitions,
+                });
+                const message = response.message;
+                if (message.tool_calls && message.tool_calls.length > 0) {
+                    let hasServerTool = false;
+                    for (const toolCall of message.tool_calls) {
+                        const toolName = toolCall.function.name;
+                        if (serverTools[toolName]) {
+                            hasServerTool = true;
+                            const result = await serverTools[toolName](toolCall.function.arguments);
+                            currentMessages.push(message);
+                            currentMessages.push({ role: 'tool', content: result });
+                        }
                     }
+                    if (hasServerTool)
+                        continue;
                 }
-                // Jika kita mengeksekusi tool di server, kita tanya AI lagi dengan hasil tersebut
-                if (hasServerTool) {
-                    continue;
-                }
+                // Simpan hasil akhir ke dalam task
+                tasks.set(taskId, { status: 'completed', data: response });
+                break;
             }
-            // Jika tidak ada server tool yang dipanggil, kirim respon balik ke client (mungkin ada local tool)
-            return res.json(response);
         }
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
+        catch (error) {
+            console.error(`[Task ${taskId}] Error:`, error.message);
+            tasks.set(taskId, { status: 'error', error: error.message });
+        }
+    })();
+    // Langsung balas taskId ke client (koneksi putus di sini, aman dari timeout)
+    res.json({ taskId });
+});
+app.get('/status/:taskId', (req, res) => {
+    const task = tasks.get(req.params.taskId);
+    if (!task)
+        return res.status(404).json({ error: 'Task not found' });
+    res.json(task);
+    // Jika sudah selesai atau error, hapus dari memory setelah diambil
+    if (task.status === 'completed' || task.status === 'error') {
+        tasks.delete(req.params.taskId);
     }
 });
 app.listen(PORT, () => {
