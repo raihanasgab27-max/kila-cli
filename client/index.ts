@@ -11,7 +11,7 @@ program
   .description('Remote AI Code Assistant via VPS Bridge')
   .version('1.0.0')
   .requiredOption('-u, --url <url>', 'Cloudflare Tunnel URL of the VPS Bridge')
-  .option('-m, --model <model>', 'Ollama model on VPS', 'llama3.2:3b')
+  .option('-m, --model <model>', 'Ollama model on VPS', 'fredrezones55/Qwopus3.5:9b')
   .action(async (options) => {
     console.log(chalk.bold.blue('\nKILA CLI - REMOTE AI BRIDGE'));
     console.log(chalk.gray('================================================'));
@@ -28,7 +28,8 @@ program
         message: chalk.bold.green('>>'),
       });
 
-      if (!message || message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
+      const exitCommands = ['/exit', '/quit'];
+      if (!message || exitCommands.includes(message.toLowerCase().trim())) {
         console.log(chalk.yellow('\nBYE.'));
         process.exit(0);
       }

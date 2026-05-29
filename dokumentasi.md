@@ -43,6 +43,6 @@ kila-ai -u https://url-vps-kamu.com
 - **Privasi**: IP lokal kamu tidak terekspos langsung ke mesin pencari.
 
 ## Konfigurasi
-- **Model Default**: `llama3.2:3b` (Bisa diubah via flag `-m`).
+- **Model Default**: `fredrezones55/Qwopus3.5:9b` (Bisa diubah via flag `-m`).
 - **Context Window**: Mengikuti default Ollama (biasanya 2048 - 4096 token).
 - **Persistence**: Model tetap standby di RAM VPS selama 5 menit setelah digunakan (default Ollama keep-alive).

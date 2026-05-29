@@ -7,7 +7,7 @@ program
     .name('kila-cli')
     .description('AI Code Assistant via CLI using Ollama')
     .version('1.0.0')
-    .option('-m, --model <model>', 'Ollama model to use', 'llama3.2:3b')
+    .option('-m, --model <model>', 'Ollama model to use', 'fredrezones55/Qwopus3.5:9b')
     .action(async (options) => {
     console.log(chalk.green(`Welcome to Kila CLI! Using model: ${options.model}`));
     console.log(chalk.gray('Type "exit" or "quit" to leave the chat.\n'));
@@ -18,7 +18,8 @@ program
             name: 'message',
             message: 'You:',
         });
-        if (!message || message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
+        const exitCommands = ['/exit', '/quit'];
+        if (!message || exitCommands.includes(message.toLowerCase().trim())) {
             console.log(chalk.yellow('Goodbye!'));
             process.exit(0);
         }

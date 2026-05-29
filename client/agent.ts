@@ -5,13 +5,13 @@ export class Agent {
   private history: any[] = [
     {
       role: 'system',
-      content: 'You are a helpful AI coding assistant. You think on a remote server but the user wants you to manage files on their LOCAL PC. Use the provided tools to interact with the local file system and shell.',
+      content: 'Anda adalah asisten koding AI yang membantu. Anda berpikir di server remote tetapi pengguna ingin Anda mengelola file di PC LOKAL mereka. Gunakan tool yang disediakan untuk berinteraksi dengan file system dan shell lokal.\n\nATURAN PENTING:\n1. Selalu berbicara dalam Bahasa Indonesia.\n2. Sebelum melakukan perubahan pada file (write_file, delete_file), Anda WAJIB menjelaskan apa yang akan Anda lakukan dan meminta konfirmasi dari pengguna.\n3. Jika pengguna bertanya dalam Bahasa Indonesia, jawablah dalam Bahasa Indonesia yang santai dan profesional.',
     },
   ];
   private model: string;
   private serverUrl: string;
 
-  constructor(serverUrl: string, model: string = 'llama3.2:3b') {
+  constructor(serverUrl: string, model: string = 'fredrezones55/Qwopus3.5:9b') {
     this.serverUrl = serverUrl.replace(/\/$/, '');
     this.model = model;
   }
