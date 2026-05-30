@@ -11,7 +11,7 @@ export class Agent {
   private model: string;
   private serverUrl: string;
 
-  constructor(serverUrl: string, model: string = 'fredrezones55/Qwopus3.5:9b') {
+  constructor(serverUrl: string, model: string = 'Qwopus3.5:9b') {
     this.serverUrl = serverUrl.replace(/\/$/, '');
     this.model = model;
   }

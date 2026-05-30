@@ -3,13 +3,31 @@ export const toolDefinitions = [
         type: 'function',
         function: {
             name: 'read_file',
-            description: 'Read the contents of a file on the local PC',
+            description: 'Read the contents of a file on the local PC. Optionally provide start_line and end_line.',
             parameters: {
                 type: 'object',
                 properties: {
-                    path: { type: 'string', description: 'The path to the file' }
+                    path: { type: 'string', description: 'The path to the file' },
+                    start_line: { type: 'number', description: 'The 1-based line number to start reading from' },
+                    end_line: { type: 'number', description: 'The 1-based line number to end reading at' }
                 },
                 required: ['path']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'grep_search',
+            description: 'Search for a pattern in files within a directory on the local PC.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    pattern: { type: 'string', description: 'The regex pattern to search for' },
+                    path: { type: 'string', description: 'The directory path to search in' },
+                    include: { type: 'string', description: 'File pattern to include (e.g., "*.ts")' }
+                },
+                required: ['pattern', 'path']
             }
         }
     },

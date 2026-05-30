@@ -11,7 +11,7 @@ program
   .description('Remote AI Code Assistant via VPS Bridge')
   .version('1.0.0')
   .requiredOption('-u, --url <url>', 'Cloudflare Tunnel URL of the VPS Bridge')
-  .option('-m, --model <model>', 'Ollama model on VPS', 'fredrezones55/Qwopus3.5:9b')
+  .option('-m, --model <model>', 'Ollama model on VPS', 'Qwopus3.5:9b')
   .action(async (options) => {
     console.log(chalk.bold.blue('\nKILA CLI - REMOTE AI BRIDGE'));
     console.log(chalk.gray('================================================'));

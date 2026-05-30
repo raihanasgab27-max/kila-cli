@@ -11,7 +11,7 @@ export class Agent {
   ];
   private model: string;
 
-  constructor(model: string = 'llama3.2:3b') {
+  constructor(model: string = 'Qwopus3.5:9b') {
     this.model = model;
   }
 

@@ -9,7 +9,7 @@ export class Agent {
     ];
     model;
     serverUrl;
-    constructor(serverUrl, model = 'fredrezones55/Qwopus3.5:9b') {
+    constructor(serverUrl, model = 'Qwopus3.5:9b') {
         this.serverUrl = serverUrl.replace(/\/$/, '');
         this.model = model;
     }

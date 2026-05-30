@@ -9,7 +9,7 @@ program
   .name('kila-cli')
   .description('AI Code Assistant via CLI using Ollama')
   .version('1.0.0')
-  .option('-m, --model <model>', 'Ollama model to use', 'fredrezones55/Qwopus3.5:9b')
+  .option('-m, --model <model>', 'Ollama model to use', 'Qwopus3.5:9b')
   .action(async (options) => {
     console.log(chalk.green(`Welcome to Kila CLI! Using model: ${options.model}`));
     console.log(chalk.gray('Type "exit" or "quit" to leave the chat.\n'));

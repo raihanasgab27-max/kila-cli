@@ -1,22 +1,59 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { search } from 'duck-duck-scrape';
 import { z } from 'zod';
 
 // Define the tool schemas
 export const tools = [
   {
     name: 'read_file',
-    description: 'Read the contents of a file',
+    description: 'Read the contents of a file. Optionally provide start_line and end_line (1-based) to read specific parts.',
     parameters: z.object({
       path: z.string().describe('The path to the file to read'),
+      start_line: z.number().optional().describe('The 1-based line number to start reading from'),
+      end_line: z.number().optional().describe('The 1-based line number to end reading at'),
     }),
-    execute: async (args: { path: string }) => {
+    execute: async (args: { path: string; start_line?: number; end_line?: number }) => {
       try {
-        return fs.readFileSync(args.path, 'utf8');
+        const content = fs.readFileSync(args.path, 'utf8');
+        const lines = content.split('\n');
+        
+        if (args.start_line || args.end_line) {
+          const start = args.start_line ? args.start_line - 1 : 0;
+          const end = args.end_line ? args.end_line : lines.length;
+          const slicedLines = lines.slice(start, end);
+          return `[Showing lines ${start + 1} to ${Math.min(end, lines.length)} of ${lines.length}]\n${slicedLines.join('\n')}`;
+        }
+        
+        return content;
       } catch (error: any) {
         return `Error reading file: ${error.message}`;
+      }
+    },
+  },
+  {
+    name: 'grep_search',
+    description: 'Search for a pattern in files within a directory (recursive).',
+    parameters: z.object({
+      pattern: z.string().describe('The regex pattern to search for'),
+      path: z.string().describe('The directory path to search in').default('.'),
+      include: z.string().optional().describe('File pattern to include (e.g., "*.ts")'),
+    }),
+    execute: async (args: { pattern: string; path: string; include?: string }) => {
+      try {
+        let command = `grep -rnE "${args.pattern.replace(/"/g, '\\"')}" "${args.path}"`;
+        if (args.include) {
+          command += ` --include="${args.include}"`;
+        }
+        
+        // Limit results to prevent context overflow
+        command += ` | head -n 50`;
+
+        const output = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
+        return output || 'No matches found.';
+      } catch (error: any) {
+        if (error.status === 1) return 'No matches found.';
+        return `Error searching: ${error.message}`;
       }
     },
   },
@@ -92,15 +129,25 @@ export const toolDefinitions = tools.map((tool) => ({
     parameters: {
       type: 'object',
       properties: Object.fromEntries(
-        Object.entries(tool.parameters.shape).map(([key, value]: [string, any]) => [
-          key,
-          {
-            type: value._def.typeName === 'ZodString' ? 'string' : 'any',
-            description: value.description,
-          },
-        ])
+        Object.entries(tool.parameters.shape).map(([key, value]: [string, any]) => {
+          let type = 'string';
+          const zType = value._def.typeName;
+          if (zType === 'ZodNumber') type = 'number';
+          if (zType === 'ZodBoolean') type = 'boolean';
+          
+          return [
+            key,
+            {
+              type,
+              description: value.description,
+            },
+          ];
+        })
       ),
-      required: Object.keys(tool.parameters.shape),
+      required: Object.keys(tool.parameters.shape).filter(key => {
+        const field = (tool.parameters.shape as any)[key];
+        return field._def.typeName !== 'ZodOptional' && field._def.defaultValue === undefined;
+      }),
     },
   },
 }));

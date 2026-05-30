@@ -9,7 +9,7 @@ export class Agent {
         },
     ];
     model;
-    constructor(model = 'llama3.2:3b') {
+    constructor(model = 'Qwopus3.5:9b') {
         this.model = model;
     }
     async chat(userMessage) {
