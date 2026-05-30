@@ -231,6 +231,20 @@ Lanjutkan bantuan Anda berdasarkan ringkasan di atas.`,
               const icon = '✓';
               const displayName = toolName.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
               
+              let detail = '';
+              if (toolName === 'read_file') {
+                const range = (args.start_line || args.end_line) ? ` [L${args.start_line || 1}-${args.end_line || 'end'}]` : '';
+                detail = `${chalk.cyan(args.path)}${chalk.yellow(range)}`;
+              } else if (toolName === 'web_search') {
+                detail = chalk.yellow(`"${args.query}"`);
+              } else if (toolName === 'grep_search') {
+                detail = `${chalk.yellow(`/${args.pattern}/`)} in ${chalk.cyan(args.path)}`;
+              } else if (toolName === 'run_command') {
+                detail = chalk.gray(`$ ${args.command}`);
+              } else {
+                detail = chalk.cyan(args.path || args.command || args.pattern || args.query || '');
+              }
+
               if (toolName === 'write_file') {
                 const { added, removed, diffLines } = this.showDiff(args.path, args.content);
                 console.log(`  ${chalk.green(icon)}  ${chalk.bold(displayName)}  ${chalk.cyan(args.path)} → ${chalk.green(`Accepted (+${added}, -${removed})`)}`);
@@ -238,7 +252,7 @@ Lanjutkan bantuan Anda berdasarkan ringkasan di atas.`,
                 diffLines.forEach(line => console.log(line));
                 console.log('');
               } else {
-                console.log(`  ${chalk.green(icon)}  ${chalk.bold(displayName)}  ${chalk.cyan(args.path || args.command || args.pattern || '')}`);
+                console.log(`  ${chalk.green(icon)}  ${chalk.bold(displayName)}  ${detail}`);
               }
 
               const result = await tool.execute(args);

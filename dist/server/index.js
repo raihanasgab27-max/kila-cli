@@ -1,18 +1,23 @@
 import express from 'express';
 import ollama from 'ollama';
+import dotenv from 'dotenv';
+dotenv.config();
 import { toolDefinitions } from './tool-schemas.js';
 import { search } from 'duck-duck-scrape';
 import { createRequire } from 'module';
+import { tavily } from '@tavily/core';
 const require = createRequire(import.meta.url);
 const googleIt = require('google-it');
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 const PORT = process.env.PORT || 3000;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 // Penyimpanan tugas (Task Queue)
 const tasks = new Map();
 // Logika eksekusi tool di sisi Server (VPS)
 const serverTools = {
     web_search: async (args) => {
+        // 1. Coba DuckDuckGo
         try {
             console.log(`Server executing web_search (DuckDuckGo): ${args.query}`);
             const results = await search(args.query);
@@ -24,8 +29,24 @@ const serverTools = {
                 .join('\n\n');
         }
         catch (error) {
-            console.log(`DuckDuckGo failed, trying Google: ${error.message}`);
+            console.log(`DuckDuckGo failed: ${error.message}`);
+            // 2. Coba Tavily (Jika ada API Key)
+            if (TAVILY_API_KEY) {
+                try {
+                    console.log(`Trying Tavily Search: ${args.query}`);
+                    const tvly = tavily({ apiKey: TAVILY_API_KEY });
+                    const tavilyResults = await tvly.search(args.query, { searchDepth: "advanced", maxResults: 5 });
+                    return tavilyResults.results
+                        .map((r) => `Title: ${r.title}\nURL: ${r.url}\nDescription: ${r.content}`)
+                        .join('\n\n');
+                }
+                catch (tavilyError) {
+                    console.log(`Tavily failed: ${tavilyError.message}`);
+                }
+            }
+            // 3. Coba Google (Last Resort)
             try {
+                console.log(`Trying Google Search: ${args.query}`);
                 const googleResults = await googleIt({ query: args.query, limit: 5 });
                 return googleResults
                     .map((r) => `Title: ${r.title}\nURL: ${r.link}\nDescription: ${r.snippet}`)
