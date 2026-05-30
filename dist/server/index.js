@@ -2,6 +2,9 @@ import express from 'express';
 import ollama from 'ollama';
 import { toolDefinitions } from './tool-schemas.js';
 import { search } from 'duck-duck-scrape';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const googleIt = require('google-it');
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 const PORT = process.env.PORT || 3000;
@@ -11,15 +14,26 @@ const tasks = new Map();
 const serverTools = {
     web_search: async (args) => {
         try {
-            console.log(`Server executing web_search: ${args.query}`);
+            console.log(`Server executing web_search (DuckDuckGo): ${args.query}`);
             const results = await search(args.query);
+            if (results.results.length === 0)
+                throw new Error('No results from DuckDuckGo');
             return results.results
                 .slice(0, 5)
                 .map((r) => `Title: ${r.title}\nURL: ${r.url}\nDescription: ${r.description}`)
                 .join('\n\n');
         }
         catch (error) {
-            return `Error searching web on server: ${error.message}`;
+            console.log(`DuckDuckGo failed, trying Google: ${error.message}`);
+            try {
+                const googleResults = await googleIt({ query: args.query, limit: 5 });
+                return googleResults
+                    .map((r) => `Title: ${r.title}\nURL: ${r.link}\nDescription: ${r.snippet}`)
+                    .join('\n\n');
+            }
+            catch (googleError) {
+                return `Error searching web (all providers failed): ${googleError.message}`;
+            }
         }
     }
 };
