@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import fs from 'fs';
+import path from 'path';
 import { tools } from '../src/tools.js';
 
 const purple = chalk.hex('#8800ff');
@@ -144,7 +145,38 @@ Lanjutkan bantuan Anda berdasarkan ringkasan di atas.`,
   }
 
   async chat(userMessage: string) {
-    this.history.push({ role: 'user', content: userMessage });
+    let images: string[] = [];
+    let cleanedMessage = userMessage;
+
+    // Deteksi path gambar (png, jpg, jpeg)
+    const imageRegex = /([a-zA-Z]:\\[^:<>|"?*]+\.(png|jpg|jpeg))|(\/[^:<>|"?*]+\.(png|jpg|jpeg))/gi;
+    const matches = userMessage.match(imageRegex);
+
+    if (matches) {
+      for (const match of matches) {
+        const filePath = match.trim();
+        if (fs.existsSync(filePath)) {
+          try {
+            process.stdout.write(chalk.gray(`  [image: reading ${path.basename(filePath)}...] `));
+            const bitmap = fs.readFileSync(filePath);
+            const base64 = Buffer.from(bitmap).toString('base64');
+            images.push(base64);
+            // Hapus path dari pesan agar tidak membingungkan teks AI (opsional)
+            cleanedMessage = cleanedMessage.replace(match, `[Image: ${path.basename(filePath)}]`);
+          } catch (e) {
+            console.log(chalk.red(`\n  Gagal membaca gambar: ${filePath}`));
+          }
+        }
+      }
+      process.stdout.write('\r\x1b[K');
+    }
+
+    const userEntry: any = { role: 'user', content: cleanedMessage };
+    if (images.length > 0) {
+      userEntry.images = images;
+    }
+    
+    this.history.push(userEntry);
 
     while (true) {
       process.stdout.write(chalk.gray(`  [thinking: ${this.model}] `));
@@ -153,7 +185,10 @@ Lanjutkan bantuan Anda berdasarkan ringkasan di atas.`,
         const initRes = await fetch(`${this.serverUrl}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: this.model, messages: this.history }),
+          body: JSON.stringify({ 
+            model: this.model, 
+            messages: this.history 
+          }),
         });
 
         if (!initRes.ok) throw new Error(`VPS Error: ${await initRes.text()}`);
@@ -216,6 +251,14 @@ Lanjutkan bantuan Anda berdasarkan ringkasan di atas.`,
           }
           continue;
         }
+
+        // --- PEMBERSIHAN GAMBAR (Penting agar tidak boros!) ---
+        this.history.forEach(msg => {
+          if (msg.role === 'user' && msg.images) {
+            delete msg.images;
+            msg.content += ' (Data gambar telah dihapus dari memori untuk menghemat kuota)';
+          }
+        });
 
         return this.formatContent(message.content);
       } catch (error: any) {
