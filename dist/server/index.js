@@ -2,6 +2,7 @@ import express from 'express';
 import ollama from 'ollama';
 import dotenv from 'dotenv';
 dotenv.config();
+import chalk from 'chalk';
 import { toolDefinitions } from './tool-schemas.js';
 import { search } from 'duck-duck-scrape';
 import { createRequire } from 'module';
@@ -115,4 +116,52 @@ app.get('/status/:taskId', (req, res) => {
 app.listen(PORT, () => {
     console.log(`AI Brain Server (VPS) running on port ${PORT}`);
     console.log(`Waiting for instructions from PC...`);
+    // Jalankan auto-report secara otomatis tanpa perlu flag
+    autoReport();
 });
+async function autoReport() {
+    const bridgeUrl = process.env.BRIDGE_URL || 'https://kila-cli.iantly.com';
+    const secret = process.env.BRIDGE_SECRET || 'kila-secret-key';
+    console.log(chalk.gray(`[Bridge] Mencari URL tunnel otomatis...`));
+    try {
+        let myUrl = '';
+        // 1. Cek apakah ada di argument (fallback)
+        const reportUrlIdx = process.argv.indexOf('--report');
+        if (reportUrlIdx !== -1) {
+            myUrl = process.argv[reportUrlIdx + 1];
+        }
+        // 2. Coba deteksi otomatis dari Cloudflared Metrics API
+        else {
+            try {
+                // Cloudflared biasanya menyediakan metrics di localhost:45333
+                const metricsRes = await fetch('http://127.0.0.1:45333/metrics');
+                const text = await metricsRes.text();
+                const match = text.match(/user_hostname="([^"]+\.trycloudflare\.com)"/);
+                if (match) {
+                    myUrl = `https://${match[1]}`;
+                    console.log(chalk.green(`[Bridge] Terdeteksi URL: ${myUrl}`));
+                }
+            }
+            catch (e) {
+                // Abaikan jika metrics tidak aktif
+            }
+        }
+        if (!myUrl) {
+            console.log(chalk.yellow('[Bridge] Tidak ada URL terdeteksi. Silakan gunakan --report jika otomatis gagal.'));
+            return;
+        }
+        console.log(chalk.gray(`[Bridge] Melapor ke ${bridgeUrl}...`));
+        const res = await fetch(`${bridgeUrl}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: myUrl, secret }),
+        });
+        if (res.ok)
+            console.log(chalk.green('[Bridge] Registrasi Berhasil!'));
+        else
+            console.log(chalk.red('[Bridge] Registrasi Gagal (Cek Secret Key)!'));
+    }
+    catch (e) {
+        console.log(chalk.red(`[Bridge] Error: ${e.message}`));
+    }
+}

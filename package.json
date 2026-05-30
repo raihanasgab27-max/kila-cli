@@ -10,6 +10,7 @@
   "scripts": {
     "client": "node --loader ts-node/esm client/index.ts",
     "server": "node --loader ts-node/esm server/index.ts",
+    "bridge": "node --loader ts-node/esm server/bridge.ts",
     "build": "tsc"
   },
   "dependencies": {

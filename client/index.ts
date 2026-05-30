@@ -7,10 +7,10 @@ import { Agent } from './agent.js';
 const program = new Command();
 
 program
-  .name('kila-cli')
-  .description('Remote AI Code Assistant via VPS Bridge')
+  .name('kila')
+  .description('Remote AI Code Assistant via Home Bridge')
   .version('1.0.0')
-  .requiredOption('-u, --url <url>', 'Cloudflare Tunnel URL of the VPS Bridge')
+  .option('-u, --url <url>', 'URL of the VPS or Bridge', 'http://192.168.1.139:3123')
   .option('-m, --model <model>', 'Ollama model on VPS', 'Qwopus3.5:9b')
   .action(async (options) => {
     console.log(chalk.bold.blue('\nKILA CLI - REMOTE AI BRIDGE'));
