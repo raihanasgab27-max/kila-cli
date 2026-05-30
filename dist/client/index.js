@@ -28,17 +28,34 @@ program
             console.log(chalk.yellow('\nBYE.'));
             process.exit(0);
         }
-        if (message.toLowerCase().trim() === '/ringkas') {
+        const cmd = message.toLowerCase().trim();
+        if (cmd === '/ringkas') {
             const summary = await agent.summarize();
             console.log(`\n${chalk.bold.green('MEMORI DIRINGKAS:')}\n${chalk.gray(summary)}\n`);
             continue;
         }
-        if (message.toLowerCase().trim() === '/quota') {
+        if (cmd === '/quota') {
             const { totalChars, limit, percentage } = agent.getQuota();
             const color = Number(percentage) > 80 ? chalk.red : (Number(percentage) > 50 ? chalk.yellow : chalk.green);
             console.log(`\n${chalk.bold('MEMORY QUOTA:')}`);
             console.log(`Usage: ${chalk.cyan(totalChars.toLocaleString())} / ${limit.toLocaleString()} characters`);
             console.log(`Status: ${color(`${percentage}%`)}\n`);
+            continue;
+        }
+        if (cmd.startsWith('/dashboard')) {
+            const sub = cmd.split(/\s+/)[1] || '';
+            if (sub === 'reset') {
+                const res = agent.resetDashboard();
+                console.log(`\n${res}\n`);
+            }
+            else if (sub === 'export') {
+                const res = agent.exportDashboard();
+                console.log(`\n${res}\n`);
+            }
+            else {
+                const db = agent.getDashboard();
+                console.log(db);
+            }
             continue;
         }
         const response = await agent.chat(message);

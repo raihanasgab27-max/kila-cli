@@ -27,15 +27,24 @@ app.post('/chat', async (req, res) => {
         return res.status(503).json({ error: 'Server Akhir (Colab) belum terhubung ke Bridge!' });
     }
     try {
+        console.log(chalk.yellow(`  [proxy] Meneruskan chat ke: ${remoteTunnelUrl}/chat`));
         const response = await fetch(`${remoteTunnelUrl}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body),
         });
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.log(chalk.red(`  [proxy] Error: Server Akhir mengembalikan non-JSON (HTML)!`));
+            console.log(chalk.red(`  [proxy] Raw Response (200 char): ${text.substring(0, 200)}`));
+            return res.status(500).json({ error: `Server Akhir mengembalikan HTML (bukan JSON). Kemungkinan URL Tunnel salah atau mati!` });
+        }
         const data = await response.json();
         res.json(data);
     }
     catch (error) {
+        console.log(chalk.red(`  [proxy] Gagal: ${error.message}`));
         res.status(500).json({ error: `Gagal meneruskan ke Colab: ${error.message}` });
     }
 });
