@@ -6,6 +6,17 @@ import { z } from 'zod';
 // Define the tool schemas
 export const tools = [
   {
+    name: 'update_topic',
+    description: 'Update the current topic or task being performed. Use this to keep the user informed about the progress.',
+    parameters: z.object({
+      title: z.string().describe('The title of the new topic'),
+      summary: z.string().describe('A brief summary of what is being done'),
+    }),
+    execute: async (args: { title: string; summary: string }) => {
+      return `Topic updated to: ${args.title}`;
+    },
+  },
+  {
     name: 'read_file',
     description: 'Read the contents of a file. Optionally provide start_line and end_line (1-based) to read specific parts.',
     parameters: z.object({

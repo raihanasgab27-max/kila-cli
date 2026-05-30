@@ -2,6 +2,21 @@ export const toolDefinitions = [
     {
         type: 'function',
         function: {
+            name: 'update_topic',
+            description: 'Update the current topic or task being performed. Use this to keep the user informed about the progress.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    title: { type: 'string', description: 'The title of the new topic' },
+                    summary: { type: 'string', description: 'A brief summary of what is being done' }
+                },
+                required: ['title', 'summary']
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
             name: 'read_file',
             description: 'Read the contents of a file on the local PC. Optionally provide start_line and end_line.',
             parameters: {
